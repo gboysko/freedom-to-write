@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Word Count</title>
+
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
+
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap-theme.min.css">
+  </head>
+  <body style="padding: 1em">
+	<div>Enter your word count:</div>
+
+	<!-- This is where the user enters her word count! -->
+	<input type="text" id="wordCount" style="width: 60px">
+
+	<!-- This is where our OK button appears -->
+	<div style="margin: 0.5em 0 0 0">
+		<button id="ok">OK</button>	
+		<button id="cancel">Cancel</button>
+	</div>
+
+	<script>
+		window.$ = window.jQuery = require('jquery');
+    	require('bootstrap');
+		const {ipcRenderer} = require('electron');
+
+		// Get a reference to all buttons...
+		$("button").on('click', (event) => {
+			if (event.target.id === 'ok') {
+				ipcRenderer.send('set-word-count', parseInt(document.getElementById('wordCount').value, 10));
+			}
+			window.close();
+		});	
+	</script>
+  </body>
+</html>

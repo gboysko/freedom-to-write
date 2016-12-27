@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Word Count</title>
+
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
+
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap-theme.min.css">
+  </head>
+  <body style="padding: 1em">
+	<!-- This is where the user types in! -->
+	<textarea id="textInput" class="form-control" rows="25"></textarea>
+
+	<!-- The is where the current time is shown -->
+	<div>The current time is <span id="currentTime"></span></div>
+
+	<!-- This is where the current word count is shown -->
+	<div>This current word count is <span id="currentWordCount"></span>.</div>
+
+	<script>
+		window.$ = window.jQuery = require('jquery');
+    	require('bootstrap');
+		const {ipcRenderer} = require('electron');
+
+		// Get a reference to the various HTML elements
+		const textInput = document.getElementById('textInput');
+		const currentTime = document.getElementById('currentTime');
+		const currentWordCount = document.getElementById('currentWordCount');
+
+		// Retrieve the desired word count
+		const desiredWordCount = ipcRenderer.sendSync('get-word-count');
+
+		// Update the current time every 0.5second
+		setInterval(() => currentTime.textContent = new Date().toString(), 500);
+		
+		// Get a reference to all buttons...
+		textInput.addEventListener('keyup', (event) => {
+			const wordCount = textInput.value.split(/\s/).filter(w => w);
+
+			// Put that in the UI
+			currentWordCount.textContent = wordCount.length;
+		});	
+	</script>
+  </body>
+</html>
