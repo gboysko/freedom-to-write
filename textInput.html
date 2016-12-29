@@ -51,7 +51,7 @@
 			// Did we reach our word count?
 			if (wordCount.length === desiredWordCount) {
 				// Send a message to the main program that we've reached our word count goal
-				ipcRenderer.sendSync('reached-word-count');
+				ipcRenderer.send('reached-word-count');
 			}
 		});	
 	</script>
