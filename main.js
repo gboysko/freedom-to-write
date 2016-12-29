@@ -26,7 +26,7 @@ ipcMain.on('get-word-count', (event, arg) => {
 
 function createWindow () {
   // Create the browser dialog
-  dialog = new BrowserWindow({width: 200, height: 120, frame: false, center: true});
+  dialog = new BrowserWindow({width: 200, height: 120, frame: false, center: true, minimizable: false});
 
   // and load the index.html of the app.
   dialog.loadURL(url.format({
@@ -43,7 +43,10 @@ function createWindow () {
 	// Do we have a desired word count?
 	if (desiredWordCount) {
   		// Create the main window
-  		mainWindow = new BrowserWindow({width: 800, height: 600, frame: false, center: true});
+  		mainWindow = new BrowserWindow({width: 1200, height: 1800, frame: false, center: true});
+
+		// Set the fullscreen mode
+		mainWindow.setFullScreen(true);
 
   		// and load the index.html of the app.
   		mainWindow.loadURL(url.format({
