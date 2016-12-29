@@ -14,7 +14,10 @@
 	<!-- This is where the user types in! -->
 	<textarea id="textInput" class="form-control" rows="25"></textarea>
 
-	<!-- The is where the current time is shown -->
+	<!-- This is where we show the word count goal -->
+	<div>Goal: <span id="desiredWordCount"></span></div>
+
+	<!-- This is where the current time is shown -->
 	<div>The current time is <span id="currentTime"></span></div>
 
 	<!-- This is where the current word count is shown -->
@@ -32,16 +35,24 @@
 
 		// Retrieve the desired word count
 		const desiredWordCount = ipcRenderer.sendSync('get-word-count');
+		document.getElementById('desiredWordCount').textContent = desiredWordCount;	
 
 		// Update the current time every 0.5second
 		setInterval(() => currentTime.textContent = new Date().toString(), 500);
 		
 		// Get a reference to all buttons...
 		textInput.addEventListener('keyup', (event) => {
+			// Computing the actual word count...
 			const wordCount = textInput.value.split(/\s/).filter(w => w);
 
 			// Put that in the UI
 			currentWordCount.textContent = wordCount.length;
+
+			// Did we reach our word count?
+			if (wordCount.length === desiredWordCount) {
+				// Send a message to the main program that we've reached our word count goal
+				ipcRenderer.sendSync('reached-word-count');
+			}
 		});	
 	</script>
   </body>

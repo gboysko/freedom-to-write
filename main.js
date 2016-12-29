@@ -23,6 +23,9 @@ ipcMain.on('set-word-count', (event, arg) => {
 ipcMain.on('get-word-count', (event, arg) => {
 	event.returnValue = desiredWordCount;
 });
+ipcMain.on('reached-word-count', (event, arg) => {
+	mainWindow.setFullScreen(false);
+});
 
 function createWindow () {
   // Create the browser dialog
@@ -43,7 +46,7 @@ function createWindow () {
 	// Do we have a desired word count?
 	if (desiredWordCount) {
   		// Create the main window
-  		mainWindow = new BrowserWindow({width: 1200, height: 1800, frame: false, center: true});
+  		mainWindow = new BrowserWindow({width: 800, height: 600, frame: true, center: true});
 
 		// Set the fullscreen mode
 		mainWindow.setFullScreen(true);
