@@ -1,59 +1,62 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <title>Word Count</title>
+	<head>
+		<meta charset="UTF-8">
+		<title>Word Count</title>
 
-	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
+		<!-- Latest compiled and minified CSS -->
+		<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
 
-	<!-- Optional theme -->
-	<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap-theme.min.css">
-  </head>
-  <body style="padding: 1em">
-	<!-- This is where the user types in! -->
-	<textarea id="textInput" class="form-control" rows="25"></textarea>
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap-theme.min.css">
+ 	</head>
+	<body style="padding: 1em">
+		<!-- This is where the user types in! -->
+		<textarea id="textInput" class="form-control" placeholder="Enter your writing exercise here!" autofocus></textarea>
 
-	<!-- This is where we show the word count goal -->
-	<div>Goal: <span id="desiredWordCount"></span></div>
+		<!-- This is where we show the word count goal -->
+		<div>Goal: <span id="desiredWordCount"></span></div>
 
-	<!-- This is where the current time is shown -->
-	<div>The current time is <span id="currentTime"></span></div>
+		<!-- This is where the current time is shown -->
+		<div>The current time is <span id="currentTime"></span></div>
 
-	<!-- This is where the current word count is shown -->
-	<div>This current word count is <span id="currentWordCount"></span>.</div>
+		<!-- This is where the current word count is shown -->
+		<div>This current word count is <span id="currentWordCount"></span>.</div>
 
-	<script>
-		window.$ = window.jQuery = require('jquery');
-    	require('bootstrap');
-		const {ipcRenderer} = require('electron');
+		<script>
+			// Install jQuery, Bootstrap
+			window.$ = window.jQuery = require('jquery');
+			require('bootstrap');
 
-		// Get a reference to the various HTML elements
-		const textInput = document.getElementById('textInput');
-		const currentTime = document.getElementById('currentTime');
-		const currentWordCount = document.getElementById('currentWordCount');
+			// Install the Inter Process Communication: Renderer class
+			const {ipcRenderer} = require('electron');
 
-		// Retrieve the desired word count
-		const desiredWordCount = ipcRenderer.sendSync('get-word-count');
-		document.getElementById('desiredWordCount').textContent = desiredWordCount;	
+			// Get a reference to the various HTML elements
+			const textInput = $('#textInput');
+			const currentTime = $('#currentTime');
+			const currentWordCount = $('#currentWordCount');
 
-		// Update the current time every 0.5second
-		setInterval(() => currentTime.textContent = new Date().toString(), 500);
+			// Retrieve the desired word count
+			const desiredWordCount = ipcRenderer.sendSync('get-word-count');
+			document.getElementById('desiredWordCount').textContent = desiredWordCount;	
+
+			// Update the current time every 0.5second
+			setInterval(() => currentTime.text(new Date().toString(), 500));
 		
-		// Get a reference to all buttons...
-		textInput.addEventListener('keyup', (event) => {
-			// Computing the actual word count...
-			const wordCount = textInput.value.split(/\s/).filter(w => w);
+			// Get a reference to all buttons...
+			textInput.on('keyup', (event) => {
+				// Construct the array of words
+				const wordArray = textInput.val().split(/\s/).filter(w => w);
 
-			// Put that in the UI
-			currentWordCount.textContent = wordCount.length;
+				// Put count of words in the UI
+				currentWordCount.text(wordArray.length);
 
-			// Did we reach our word count?
-			if (wordCount.length === desiredWordCount) {
-				// Send a message to the main program that we've reached our word count goal
-				ipcRenderer.send('reached-word-count');
-			}
-		});	
-	</script>
-  </body>
+				// Did we reach our word count?
+				if (wordArray.length === desiredWordCount) {
+					// Send an asynchronous message to the main program that we've reached our word count goal
+					ipcRenderer.send('reached-word-count');
+				}
+			});	
+		</script>
+  	</body>
 </html>
