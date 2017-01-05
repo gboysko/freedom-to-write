@@ -1,39 +1,107 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <title>Word Count</title>
+	<head>
+		<meta charset="UTF-8">
+		<title>Word Count</title>
 
-	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
+		<!-- Latest compiled and minified CSS -->
+		<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
 
-	<!-- Optional theme -->
-	<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap-theme.min.css">
-  </head>
-  <body style="padding: 1em">
-	<div>Enter your word count:</div>
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap-theme.min.css">
 
-	<!-- This is where the user enters her word count! -->
-	<input type="text" id="wordCount" style="width: 60px">
+		<!-- Our application styles -->
+		<style type="text/css">
+BODY {
+	padding: 1em;
+}
+INPUT#wordCount {
+	display: inline-block;
+	width: 4em;
+	text-align: right;
+}
+BUTTON {
+	margin: 0 0 0 1em;
+}
+TABLE.table TD:nth-child(2) {
+	text-align: right;
+}
+H2 {
+	font-size: 1.1em;
+}
+		</style>
+	</head>
+	<body>
+		<div>
+			<!-- This is just a label for the text input -->
+			<label for="wordCount">Goal:</label>
 
-	<!-- This is where our OK button appears -->
-	<div style="margin: 0.5em 0 0 0">
-		<button id="ok">OK</button>	
-		<button id="cancel">Cancel</button>
-	</div>
+			<!-- This is where the user enters her word count! -->
+			<input type="text" id="wordCount" class="form-control" placeholder="N" autofocus>
+			<span>words</span>
 
-	<script>
-		window.$ = window.jQuery = require('jquery');
-    	require('bootstrap');
-		const {ipcRenderer} = require('electron');
+			<!-- Our button to accept the word count -->
+			<button type="submit" class="btn btn-primary" disabled>OK</button>
+		</div>
 
-		// Get a reference to all buttons...
-		$("button").on('click', (event) => {
-			if (event.target.id === 'ok') {
-				ipcRenderer.send('set-word-count', parseInt(document.getElementById('wordCount').value, 10));
-			}
-			window.close();
-		});	
-	</script>
-  </body>
+		<hr/>
+
+		<h2>Prior runs:</h2>
+
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Date</th>
+					<th>Words</th>
+					<th>Time Taken</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>Dec 1, 2016</td>
+					<td>500</td>
+					<td>1 hour, 15 minutes</td>
+				</tr>
+				<tr>
+					<td>Nov 20, 2016</td>
+					<td>750</td>
+					<td>2 hour, 30 minutes</td>
+				</tr>
+			</tbody>
+		</table>
+
+		<script>
+			// Load jQuery, Bootstrap
+			window.$ = window.jQuery = require('jquery');
+			require('bootstrap');
+
+			// Load the ipcRenderer class..
+			const {ipcRenderer} = require('electron');
+
+			// Handle keystrokes -- discard anything other than arrow key, delete, tab or digit
+			$('#wordCount').on('keydown', e => {
+				const isArrowKey = k => k >= 37 && k <= 40;
+				const isDelete = k => k == 8;
+				const isTab = k = k == 9;
+				const isDigit = k => /[0-9]/.test(String.fromCharCode(k));
+
+				return isArrowKey(e.which) || isTab(e.which) || isDelete(e.which) || isDigit(e.which);
+			});
+
+			// Check whether the text input has a number
+			$('#wordCount').on('keyup', e => {
+				// Disable the OK button if we DON'T have a number greater than 0
+				$("button").prop('disabled', !(parseInt(e.target.value, 10) > 0));
+			});
+
+			// Handle the OK button
+			$("button").on('click', event => {
+				// Tell the main program that we have collected the word count...
+				ipcRenderer.send('set-word-count', parseInt($('#wordCount').val(), 10));
+
+				// Close ourself!
+				window.close();
+			});	
+		</script>
+	</body>
 </html>

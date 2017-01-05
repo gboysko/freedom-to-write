@@ -8,7 +8,6 @@ const {ipcMain} = electron;
 
 const path = require('path')
 const url = require('url')
-
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let dialog, mainWindow;
@@ -16,7 +15,10 @@ let dialog, mainWindow;
 // The desired word count to attain
 let desiredWordCount;
 
-// Handle a synchronous message
+// Whether we've reached our word count
+let reachedWordCount = false;
+
+// Handle messages (synch and asynch)
 ipcMain.on('set-word-count', (event, arg) => {
 	desiredWordCount = arg;
 });
@@ -24,78 +26,75 @@ ipcMain.on('get-word-count', (event, arg) => {
 	event.returnValue = desiredWordCount;
 });
 ipcMain.on('reached-word-count', (event, arg) => {
+	reachedWordCount = true;
 	mainWindow.setFullScreen(false);
 });
 
 function createWindow () {
-  // Create the browser dialog
-  dialog = new BrowserWindow({width: 200, height: 120, frame: false, center: true, minimizable: false});
+	// Create the browser dialog
+	dialog = new BrowserWindow({width: 400, height: 300, center: true, minimizable: false, maximizable: false});
 
-  // and load the index.html of the app.
-  dialog.loadURL(url.format({
-    pathname: path.join(__dirname, 'dialog.html'),
-    protocol: 'file:',
-    slashes: true
-  }));
+	// and load the index.html of the app.
+	dialog.loadURL(url.format({
+		pathname: path.join(__dirname, 'dialog.html'),
+		protocol: 'file:',
+		slashes: true
+	}));
 
-  // Open the DevTools.
-  // dialog.webContents.openDevTools()
+	// Open the DevTools.
+	// dialog.webContents.openDevTools()
 
-  // Emitted when the window is closed.
-  dialog.on('closed', function () {
-	// Do we have a desired word count?
-	if (desiredWordCount) {
-  		// Create the main window
-  		mainWindow = new BrowserWindow({width: 800, height: 600, frame: true, center: true});
+	// Emitted when the window is closed.
+	dialog.on('closed', function () {
+		// Do we have a desired word count?
+		if (desiredWordCount) {
+			// Create the main window
+			mainWindow = new BrowserWindow({width: 800, height: 600, frame: true, center: true});
 
-		// Set the fullscreen mode
-		mainWindow.setFullScreen(true);
+			// Set the fullscreen mode
+			mainWindow.setFullScreen(true);
 
-  		// and load the index.html of the app.
-  		mainWindow.loadURL(url.format({
-    		pathname: path.join(__dirname, 'textInput.html'),
-    		protocol: 'file:',
-    		slashes: true
-  		}));
+			// and load the index.html of the app.
+			mainWindow.loadURL(url.format({
+				pathname: path.join(__dirname, 'textInput.html'),
+				protocol: 'file:',
+				slashes: true
+			}));
 
-  		// Open the DevTools.
-  		// mainWindow.webContents.openDevTools()
+			// Open the DevTools.
+			// mainWindow.webContents.openDevTools()
 
-		// Handle the window close
-		mainWindow.on('closed', function () {
-			mainWindow = null;
-		});
-	} else {
-    	// Dereference the window object, usually you would store windows
-    	// in an array if your app supports multi windows, this is the time
-    	// when you should delete the corresponding element.
-    	dialog = null;
-	}
-  })
+			// Handle the window close
+			mainWindow.on('closed', function () {
+				mainWindow = null;
+			});
+		} else {
+			// Dereference the window object, usually you would store windows
+			// in an array if your app supports multi windows, this is the time
+			// when you should delete the corresponding element.
+			dialog = null;
+		}
+	})
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow)
+app.on('ready', createWindow);
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function () {
-  // On OS X it is common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
-  if (process.platform !== 'darwin' && mainWindow) {
-	console.log('window-all-closed event called...');
-    app.quit()
-  }
-})
+	// On OS X it is common for applications and their menu bar
+	// to stay active until the user quits explicitly with Cmd + Q
+	if (process.platform !== 'darwin' && (!desiredWordCount || reachedWordCount)) {
+		app.quit();
+	}
+});
 
 app.on('activate', function () {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (mainWindow === null) {
-    createWindow()
-  }
-})
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
+	// On OS X it's common to re-create a window in the app when the
+	// dock icon is clicked and there are no other windows open.
+	if (mainWindow === null) {
+		createWindow()
+	}
+});
