@@ -5,7 +5,7 @@ var phantom = require('phantom');
 phantom.create(
 	['--ignore-ssl-errors=yes', '--load-images=no'],
 	{
-		phantomPath: '/home/glenn/phantom/bin/phantomjs',
+		xphantomPath: '/home/glenn/phantom/bin/phantomjs',
 		logLevel: 'debug'
 }).then(ph => {
 	// Status...
