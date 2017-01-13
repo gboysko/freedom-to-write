@@ -78,6 +78,7 @@ phantom.create(phantomArgs, phantomJsConfig).then(ph => {
 						const cookies = Object.keys(cookieMap).map(k => `${k}=${cookieMap[k]}`).join('; '),
 							options = {
 								headers: {
+									'Content-Type': 'application/json',
 									'Accept': 'application/json',
 									'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36',
 									'Cookie': cookies
@@ -102,15 +103,20 @@ phantom.create(phantomArgs, phantomJsConfig).then(ph => {
 								console.log(`Found block list for name=${name}: ${blockListId}`);
 
 								// Now, try to create a new 1 minute schedule
-								return rp.post('https://freedom.to/schedules', {
-									form: {
-										filter_list_ids: [blockListId],
-										device_ids: [deviceId],
+								const filter_list_ids = [].concat(blockListId),
+									device_ids = [].concat(deviceId);
+
+								return rp({
+									method: 'POST',
+									uri: 'https://freedom.to/schedules',
+									body: JSON.stringify({
+										filter_list_ids,
+										device_ids,
 										duration: 60,
 										start_time: 'now'
-									},
+									}),
 									headers: options.headers,
-									json: true
+									json: false
 								}).then(scheduleJson => {
 									console.log(`Successfully created a new schedule: ${JSON.stringify(scheduleJson)}`);
 									ph.exit();
