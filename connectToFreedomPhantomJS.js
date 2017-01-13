@@ -101,7 +101,20 @@ phantom.create(phantomArgs, phantomJsConfig).then(ph => {
 									blockListId = findBlockList(name, filterListJson);
 								console.log(`Found block list for name=${name}: ${blockListId}`);
 
-								ph.exit();
+								// Now, try to create a new 1 minute schedule
+								return rp.post('https://freedom.to/schedules', {
+									form: {
+										filter_list_ids: [blockListId],
+										device_ids: [deviceId],
+										duration: 60,
+										start_time: 'now'
+									},
+									headers: options.headers,
+									json: true
+								}).then(scheduleJson => {
+									console.log(`Successfully created a new schedule: ${JSON.stringify(scheduleJson)}`);
+									ph.exit();
+								});
 							});
 						}).catch(err => {
 							console.log(`Request failed: ${err}`);
