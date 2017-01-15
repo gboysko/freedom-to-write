@@ -37,6 +37,7 @@ ipcMain.on('get-word-count', (event /*, arg*/) => {
 ipcMain.on('reached-word-count', (/* event, arg*/) => {
 	reachedWordCount = true;
 	mainWindow.setFullScreen(false);
+	mainWindow.setClosable(true);
 });
 ipcMain.on('set-freedom-creds', (event, email, password) => {
 	// Log it...
@@ -75,6 +76,7 @@ function createWindow () {
 
 			// Set the fullscreen mode
 			mainWindow.setFullScreen(true);
+			mainWindow.setClosable(false);
 
 			// and load the index.html of the app.
 			mainWindow.loadURL(url.format({
