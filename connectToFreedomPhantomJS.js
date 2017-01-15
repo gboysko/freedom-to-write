@@ -47,13 +47,25 @@ phantom.create(phantomArgs, phantomJsConfig).then(ph => {
 			}, email, password);
 		}).then(() => {
 			// Create a cookieMap
-			var cookieMap = {},
+			var cookieMap,
+				validSession,
+				sessionStatusCode,
 				foundFreedomPage = false;
 
 			// Register a function that receives each resource...
 			page.on('onResourceReceived', response => {
 				// Check to see if the resource URL is 'https://freedom.to/session"
 				if (response.url === 'https://freedom.to/session' && response.stage === 'end') {
+					// Check for a valid session
+					sessionStatusCode = response.status;
+					validSession =  sessionStatusCode < 400;
+
+					// If invalid, get out now...
+					if (!validSession) {
+						console.log(`Invalid session: Check your credentials (statusCode=${sessionStatusCode})`);
+						return;
+					}
+
 					// Pull out the Set-Cookie key
 					const setCookie = response.headers.filter(function(o) { return o.name === 'Set-Cookie';}).map(function(o) { return o.value; })[0];
 
@@ -61,7 +73,6 @@ phantom.create(phantomArgs, phantomJsConfig).then(ph => {
 					cookieMap = setCookie.split('\n').map(function(e) { return e.split(';')[0]; }).reduce(function(map, elem) { const a = elem.split('='); map[a[0]] = a[1]; return map; }, {});
 				}
 			});
-
 
 			// Register a function to indicate when the page has finished loading...
 			page.on('onLoadFinished', (status) => {
@@ -71,6 +82,10 @@ phantom.create(phantomArgs, phantomJsConfig).then(ph => {
 				}).then(url => {
 					// Is this the freedom.to/freedom page?
 					if (url === 'https://freedom.to/freedom' && !foundFreedomPage) {
+						// Invalid credentials?
+						if (!validSession) {
+							ph.exit();
+						}
 						// Record that we found the freedom page...
 						foundFreedomPage = true;
 
