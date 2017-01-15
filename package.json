@@ -17,11 +17,14 @@
   "author": "GitHub",
   "license": "CC0-1.0",
   "devDependencies": {
-    "electron": "^1.4.1"
+    "eslint": "^3.13.1"
   },
   "dependencies": {
+    "bluebird": "^3.4.7",
     "bootstrap": "^3.3.7",
     "cheerio": "^0.22.0",
+    "debug": "^2.6.0",
+    "electron": "^1.4.1",
     "jquery": "^3.1.1",
     "phantom": "^3.2.1",
     "readline-sync": "^1.4.5",

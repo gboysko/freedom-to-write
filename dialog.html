@@ -11,38 +11,37 @@
 		<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap-theme.min.css">
 
 		<!-- Our application styles -->
-		<style type="text/css">
-BODY {
-	padding: 1em;
-}
-INPUT#wordCount {
-	display: inline-block;
-	width: 4em;
-	text-align: right;
-}
-BUTTON {
-	margin: 0 0 0 1em;
-}
-TABLE.table TD:nth-child(2) {
-	text-align: right;
-}
-H2 {
-	font-size: 1.1em;
-}
-		</style>
+		<link rel="stylesheet" href="./styles.css">
 	</head>
 	<body>
-		<div>
-			<!-- This is just a label for the text input -->
-			<label for="wordCount">Goal:</label>
+		<form class="form-inline">
+			<fieldset id="loginFS">
+				<div class="form-group">
+			    <label for="emailInput">Email: </label>
+			    <input type="email" class="form-control" id="emailInput" placeholder="Freedom Email">
+			  </div>
+			  <div class="form-group">
+			    <label for="passwordInput">Password: </label>
+			    <input type="password" class="form-control" id="passwordInput" placeholder="Password">
+			  </div>
+			  <button type="submit" id="signIn" class="btn btn-primary">Login</button>
+				<span class="help-block" id="loginMsg"></span>
+			</fieldset>
+			<hr />
+			<fieldset id="wordCountFS" disabled>
+				<div class="form-group">
+					<!-- This is just a label for the text input -->
+					<label for="wordCount">Goal:</label>
 
-			<!-- This is where the user enters her word count! -->
-			<input type="text" id="wordCount" class="form-control" placeholder="N" autofocus>
-			<span>words</span>
+					<!-- This is where the user enters her word count! -->
+					<input type="text" id="wordCount" class="form-control" placeholder="N" autofocus>
+					<span>words</span>
 
-			<!-- Our button to accept the word count -->
-			<button type="submit" class="btn btn-primary" disabled>OK</button>
-		</div>
+					<!-- Our button to accept the word count -->
+					<button type="submit" id="setWordCount" class="btn btn-primary" disabled>OK</button>
+				</div>
+			</fieldset>
+		</form>
 
 		<hr/>
 
@@ -70,10 +69,14 @@ H2 {
 			</tbody>
 		</table>
 
+
 		<script>
 			// Load jQuery, Bootstrap
 			window.$ = window.jQuery = require('jquery');
 			require('bootstrap');
+
+			// Put the focus on the email field...
+			$("#emailInput").focus();
 
 			// Load the ipcRenderer class..
 			const {ipcRenderer} = require('electron');
@@ -82,7 +85,7 @@ H2 {
 			$('#wordCount').on('keydown', e => {
 				const isArrowKey = k => k >= 37 && k <= 40;
 				const isDelete = k => k == 8;
-				const isTab = k = k == 9;
+				const isTab = k => k == 9;
 				const isDigit = k => /[0-9]/.test(String.fromCharCode(k));
 
 				return isArrowKey(e.which) || isTab(e.which) || isDelete(e.which) || isDigit(e.which);
@@ -91,17 +94,48 @@ H2 {
 			// Check whether the text input has a number
 			$('#wordCount').on('keyup', e => {
 				// Disable the OK button if we DON'T have a number greater than 0
-				$("button").prop('disabled', !(parseInt(e.target.value, 10) > 0));
+				$("#setWordCount").prop('disabled', !(parseInt(e.target.value, 10) > 0));
+			});
+
+			// Handle the SignIn button
+			$("#signIn").on('click', event => {
+				// Clear the previous help message
+				$("#loginMsg").text("");
+
+				// Disable the Login Field Set
+				$("#loginFS").prop('disabled', true);
+
+				// Attempt a login...
+				ipcRenderer.send('set-freedom-creds', $("#emailInput").val(), $("#passwordInput").val());
+			});
+
+			// Handle the result of the login Attempt
+			ipcRenderer.on('login-failure', (event, message) => {
+				// Enable the Login Field Set
+				$("#loginFS").prop('disabled', false);
+
+				// Set the message
+				$("#loginMsg").text(message);
+				$("#loginFS").addClass("has-error");
+			});
+
+			ipcRenderer.on('login-success', (event) => {
+				$("#loginMsg").text("Success");
+
+				$("#loginFS").removeClass("has-error").addClass("has-success");
+
+				// Enable the Word Count Field Set...
+				$("#wordCountFS").prop('disabled', false);
 			});
 
 			// Handle the OK button
-			$("button").on('click', event => {
+			$("#setWordCount").on('click', event => {
 				// Tell the main program that we have collected the word count...
 				ipcRenderer.send('set-word-count', parseInt($('#wordCount').val(), 10));
 
 				// Close ourself!
 				window.close();
-			});	
+			});
 		</script>
 	</body>
 </html>

@@ -1,0 +1,21 @@
+BODY {
+	padding: 1em;
+}
+INPUT#wordCount {
+	display: inline-block;
+	width: 4em;
+	text-align: right;
+}
+BUTTON {
+	margin: 0 0 0 1em;
+}
+TABLE.table TD:nth-child(2) {
+	text-align: right;
+}
+H2 {
+	font-size: 1.1em;
+}
+SPAN#loginMsg {
+	display: inline;
+	padding-left: 1em;
+}
