@@ -9,13 +9,23 @@ INPUT#wordCount {
 BUTTON {
 	margin: 0 0 0 1em;
 }
-TABLE.table TD:nth-child(2) {
-	text-align: right;
-}
 H2 {
 	font-size: 1.1em;
 }
 SPAN#loginMsg {
 	display: inline;
 	padding-left: 1em;
+}
+DIV#deviceAndFilters {
+	display: none;
+}
+DIV.checkbox-list {
+	display: inline-block;
+	vertical-align: top;
+}
+DIV.checkbox-list P {
+	font-weight: 700;
+}
+DIV.checkbox-list DIV.checkbox {
+	display: block;
 }

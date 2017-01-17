@@ -46,7 +46,7 @@ ipcMain.on('set-freedom-creds', (event, email, password) => {
 	// Try to login to Freedom
 	freedom.login(email, password).then(() => {
 		debug('Sending login-success message');
-		dialog.webContents.send('login-success');
+		dialog.webContents.send('login-success', freedom.getDeviceMap(), freedom.getFilterListMap());
 	}).catch(err => {
 		debug('Sending login-failure message');
 		dialog.webContents.send('login-failure', err.message);

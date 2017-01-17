@@ -27,48 +27,58 @@
 			  <button type="submit" id="signIn" class="btn btn-primary">Login</button>
 				<span class="help-block" id="loginMsg"></span>
 			</fieldset>
-			<hr />
-			<fieldset id="wordCountFS" disabled>
-				<div class="form-group">
-					<!-- This is just a label for the text input -->
-					<label for="wordCount">Goal:</label>
+			<div id="deviceAndFilters">
+				<hr />
+				<fieldset style="display: inline-block;">
+					<div class="checkbox-list">
+						<p>Block Lists:</p>
+						<div class="filters"></div>
+					</div>
+					<div class="checkbox-list">
+						<p>Devices:</p>
+						<div class="devices"></div>
+					</div>
+				</fieldset>
+				<fieldset style="display: inline-block;">
+					<div class="form-group">
+						<!-- This is just a label for the text input -->
+						<label for="wordCount">Goal:</label>
 
-					<!-- This is where the user enters her word count! -->
-					<input type="text" id="wordCount" class="form-control" placeholder="N" autofocus>
-					<span>words</span>
+						<!-- This is where the user enters her word count! -->
+						<input type="text" id="wordCount" class="form-control" placeholder="N" autofocus>
+						<span>words</span>
 
-					<!-- Our button to accept the word count -->
-					<button type="submit" id="setWordCount" class="btn btn-primary" disabled>OK</button>
-				</div>
-			</fieldset>
+						<!-- Our button to accept the word count -->
+						<button type="submit" id="setWordCount" class="btn btn-primary" disabled>OK</button>
+					</div>
+				</fieldset>
+				<hr/>
+
+				<h2>Prior runs:</h2>
+
+				<table class="table">
+					<thead>
+						<tr>
+							<th>Date</th>
+							<th>Words</th>
+							<th>Time Taken</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>Dec 1, 2016</td>
+							<td>500</td>
+							<td>1 hour, 15 minutes</td>
+						</tr>
+						<tr>
+							<td>Nov 20, 2016</td>
+							<td>750</td>
+							<td>2 hour, 30 minutes</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
 		</form>
-
-		<hr/>
-
-		<h2>Prior runs:</h2>
-
-		<table class="table">
-			<thead>
-				<tr>
-					<th>Date</th>
-					<th>Words</th>
-					<th>Time Taken</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr>
-					<td>Dec 1, 2016</td>
-					<td>500</td>
-					<td>1 hour, 15 minutes</td>
-				</tr>
-				<tr>
-					<td>Nov 20, 2016</td>
-					<td>750</td>
-					<td>2 hour, 30 minutes</td>
-				</tr>
-			</tbody>
-		</table>
-
 
 		<script>
 			// Load jQuery, Bootstrap
@@ -119,13 +129,19 @@
 				$("#loginFS").addClass("has-error");
 			});
 
-			ipcRenderer.on('login-success', (event) => {
+			ipcRenderer.on('login-success', (event, deviceMap, filterListMap) => {
+				// Indicate that we have successfully logged in.
 				$("#loginMsg").text("Success");
 
+				// Remove an error class and indicate success!
 				$("#loginFS").removeClass("has-error").addClass("has-success");
 
-				// Enable the Word Count Field Set...
-				$("#wordCountFS").prop('disabled', false);
+				// Show the Device and Filters section
+				$("#deviceAndFilters").show();
+
+				// Fill in the checkboxes...
+				$(".checkbox-list .devices").html(Object.keys(deviceMap).map(dn => `<div class="checkbox"><label><input type="checkbox" value="${deviceMap[dn]}">&nbsp;${dn}</label></div>`).join(''));
+				$(".checkbox-list .filters").html(Object.keys(filterListMap).map(fn => `<div class="checkbox"><label><input type="checkbox" value="${filterListMap[fn]}">&nbsp;${fn}</label></div>`).join(''));
 			});
 
 			// Handle the OK button

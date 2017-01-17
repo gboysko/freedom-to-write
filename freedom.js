@@ -46,6 +46,8 @@ module.exports = class FreedomIntegration {
 
 	// Submit the Freedom Login form (filling in email and password)
 	submitLoginForm(email, password) {
+		const methodName = 'submitLoginForm';
+
 		return this.pageInstance.evaluate(function(email, password) {
 			/* eslint-disable no-undef */
 			var emailInput = document.querySelector('input[type=email]');
@@ -56,7 +58,9 @@ module.exports = class FreedomIntegration {
 			emailInput.value = email;
 			passwordInput.value = password;
 			loginForm.submit();
-		}, email, password);
+		}, email, password).then(() => {
+			debug('%s: %s', methodName, 'Successfully submitted the email and password to the form.');
+		});
 	}
 
 	// Handle a received resource
@@ -151,6 +155,11 @@ module.exports = class FreedomIntegration {
 		});
 	}
 
+	// Return the Device Map
+	getDeviceMap() {
+		return this.deviceMap;
+	}
+
 	// Get the Filter Lists JSON
 	getFilterLists() {
 		const methodName = 'getFilterLists';
@@ -173,6 +182,11 @@ module.exports = class FreedomIntegration {
 
 			throw new Error('Freedom API call failed');
 		});
+	}
+
+	// Return the Filter List Map
+	getFilterListMap() {
+		return this.filterListsMap;
 	}
 
 	// Login to Freedom
