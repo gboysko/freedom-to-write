@@ -216,7 +216,17 @@ module.exports = class FreedomIntegration {
 				this.pageInstance.on('onResourceReceived', this.onResourceReceived.bind(this, resolve, reject));
 			});
 		}).then(() => this.getDevices()).then(() => this.getFilterLists()).finally(() => {
+			// Turn off event handler...
 			this.pageInstance.off('onResourceReceived');
 		});
+	}
+
+	// Shutdown the Freedom Integration on this instance...
+	shutdown() {
+		// Close the page instance...
+		this.pageInstance.close();
+
+		// Exit Phantom...
+		this.phInstance.exit();
 	}
 };
