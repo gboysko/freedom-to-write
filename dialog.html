@@ -140,8 +140,10 @@
 				$("#deviceAndFilters").show();
 
 				// Fill in the checkboxes...
-				$(".checkbox-list .devices").html(Object.keys(deviceMap).map(dn => `<div class="checkbox"><label><input type="checkbox" value="${deviceMap[dn]}">&nbsp;${dn}</label></div>`).join(''));
-				$(".checkbox-list .filters").html(Object.keys(filterListMap).map(fn => `<div class="checkbox"><label><input type="checkbox" value="${filterListMap[fn]}">&nbsp;${fn}</label></div>`).join(''));
+				const buildCheckboxInput = (v, c) => `<input type="checkbox" value="${v}" ${c ? 'checked': ''}>`;
+				const buildCheckboxHtml = (n, v, c) => `<div class="checkbox"><label>${buildCheckboxInput(v, c)}&nbsp;${n}</label></div>`;
+				$(".checkbox-list .devices").html(Object.keys(deviceMap).map(dn => buildCheckboxHtml(dn, deviceMap[dn], Object.keys(deviceMap).length === 1)).join(''));
+				$(".checkbox-list .filters").html(Object.keys(filterListMap).map(fn => buildCheckboxHtml(fn, filterListMap[fn], Object.keys(filterListMap).length === 1)).join(''));
 			});
 
 			// Handle the OK button

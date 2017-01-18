@@ -68,7 +68,7 @@ module.exports = class FreedomIntegration {
 		const methodName = 'onResourceReceived';
 
 		// Debugging...
-		// debug('%s: %s', methodName, `Invoking onResourceReceived with this.constructor.name=${this.constructor.name}`);
+		debug('%s: %s', methodName, `Invoking onResourceReceived with response.url=${response.url}`);
 
 		// Check to see if the resource URL is our session API Ajax call
 		if (response.url === FREEDOM_URL_SESSION && response.stage === 'end') {
@@ -208,10 +208,11 @@ module.exports = class FreedomIntegration {
 			// Status...
 			debug('%s: %s', methodName, 'Successfully opened the Freedom Sign-in Page');
 
-			// Try to submit the page!
-			return this.submitLoginForm(email, password);
-		}).then(() => {
+			// Return a promise that either succeeds or fails with the session...
 			return new Promise((resolve, reject) => {
+				// Submit the credentials to the page!
+				this.submitLoginForm(email, password);
+
 				// Register a function that receives each resource...
 				this.pageInstance.on('onResourceReceived', this.onResourceReceived.bind(this, resolve, reject));
 			});
