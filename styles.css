@@ -22,10 +22,17 @@ DIV#deviceAndFilters {
 DIV.checkbox-list {
 	display: inline-block;
 	vertical-align: top;
+	margin-right: 2em;
 }
 DIV.checkbox-list P {
 	font-weight: 700;
 }
 DIV.checkbox-list DIV.checkbox {
 	display: block;
+}
+DIV#formMessage {
+	color: red;
+	font-size: 0.93em;
+	font-style: italic;
+	margin-top: 1em;
 }

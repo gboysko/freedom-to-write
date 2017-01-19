@@ -29,7 +29,7 @@
 			</fieldset>
 			<div id="deviceAndFilters">
 				<hr />
-				<fieldset style="display: inline-block;">
+				<fieldset style="display: inline-block; vertical-align: top; margin-right: 2em;">
 					<div class="checkbox-list">
 						<p>Block Lists:</p>
 						<div class="filters"></div>
@@ -39,18 +39,19 @@
 						<div class="devices"></div>
 					</div>
 				</fieldset>
-				<fieldset style="display: inline-block;">
+				<fieldset style="display: inline-block; vertical-align: top;">
 					<div class="form-group">
 						<!-- This is just a label for the text input -->
 						<label for="wordCount">Goal:</label>
 
 						<!-- This is where the user enters her word count! -->
-						<input type="text" id="wordCount" class="form-control" placeholder="N" autofocus>
+						<input type="text" id="wordCount" class="form-control" placeholder="N">
 						<span>words</span>
 
 						<!-- Our button to accept the word count -->
 						<button type="submit" id="setWordCount" class="btn btn-primary" disabled>OK</button>
 					</div>
+					<div id="formMessage"></div>
 				</fieldset>
 				<hr/>
 
@@ -91,6 +92,11 @@
 			// Load the ipcRenderer class..
 			const {ipcRenderer} = require('electron');
 
+			const anyFilterChecked = () => $(".checkbox-list .filters input").filter(":checked").length > 0,
+				anyDeviceChecked = () => $(".checkbox-list .devices input").filter(":checked").length > 0,
+				hideShowFormMessage = () => $("#formMessage")[(anyDeviceChecked() && anyFilterChecked()) ? 'hide' : 'show'](),
+				enableDisableOkButton = () => $("#setWordCount").prop('disabled', !(parseInt($('#wordCount').val(), 10) > 0 && anyFilterChecked() && anyDeviceChecked()));
+
 			// Handle keystrokes -- discard anything other than arrow key, delete, tab or digit
 			$('#wordCount').on('keydown', e => {
 				const isArrowKey = k => k >= 37 && k <= 40;
@@ -104,7 +110,7 @@
 			// Check whether the text input has a number
 			$('#wordCount').on('keyup', e => {
 				// Disable the OK button if we DON'T have a number greater than 0
-				$("#setWordCount").prop('disabled', !(parseInt(e.target.value, 10) > 0));
+				enableDisableOkButton();
 			});
 
 			// Handle the SignIn button
@@ -127,6 +133,9 @@
 				// Set the message
 				$("#loginMsg").text(message);
 				$("#loginFS").addClass("has-error");
+
+				// Set focus to the passwordInput
+				$("#passwordInput").focus();
 			});
 
 			ipcRenderer.on('login-success', (event, deviceMap, filterListMap) => {
@@ -140,10 +149,32 @@
 				$("#deviceAndFilters").show();
 
 				// Fill in the checkboxes...
-				const buildCheckboxInput = (v, c) => `<input type="checkbox" value="${v}" ${c ? 'checked': ''}>`;
-				const buildCheckboxHtml = (n, v, c) => `<div class="checkbox"><label>${buildCheckboxInput(v, c)}&nbsp;${n}</label></div>`;
-				$(".checkbox-list .devices").html(Object.keys(deviceMap).map(dn => buildCheckboxHtml(dn, deviceMap[dn], Object.keys(deviceMap).length === 1)).join(''));
-				$(".checkbox-list .filters").html(Object.keys(filterListMap).map(fn => buildCheckboxHtml(fn, filterListMap[fn], Object.keys(filterListMap).length === 1)).join(''));
+				const buildCheckboxInput = (v, c) => `<input type="checkbox" value="${v}" ${c ? 'checked': ''}>`,
+					buildCheckboxHtml = (n, v, c) => `<div class="checkbox"><label>${buildCheckboxInput(v, c)}&nbsp;${n}</label></div>`,
+					oneDevice = Object.keys(deviceMap).length === 1,
+					oneFilter = Object.keys(filterListMap).length === 1;
+
+				$(".checkbox-list .devices").html(Object.keys(deviceMap).map(dn => buildCheckboxHtml(dn, deviceMap[dn], oneDevice)).join(''));
+				$(".checkbox-list .filters").html(Object.keys(filterListMap).map(fn => buildCheckboxHtml(fn, filterListMap[fn], oneFilter)).join(''));
+
+				// Add an error messages
+				if (!oneDevice || !oneFilter) {
+					$("#formMessage").text("Please select at least one block list and one device.");
+				}
+				// Focus in the wordCount input
+				$("#wordCount").focus();
+			});
+
+			// Handle changes to the Block List
+			$(".checkbox-list .filters").on('click', 'input', event => {
+				hideShowFormMessage();
+				enableDisableOkButton();
+			});
+
+			// Handle changes to the Devices
+			$(".checkbox-list .devices").on('click', 'input', event => {
+				hideShowFormMessage();
+				enableDisableOkButton();
 			});
 
 			// Handle the OK button
