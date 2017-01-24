@@ -21,6 +21,12 @@ let dialog, mainWindow;
 // The desired word count to attain
 let desiredWordCount;
 
+// The device IDs to block
+let _deviceIds;
+
+// The filter IDs to use to block
+let _filterIds;
+
 // Whether we've reached our word count
 let reachedWordCount = false;
 
@@ -28,8 +34,31 @@ let reachedWordCount = false;
 let freedom;
 
 // Handle messages (synch and asynch)
-ipcMain.on('set-word-count', (event, arg) => {
-	desiredWordCount = arg;
+ipcMain.on('set-word-count', (event, wordCount, deviceIds, filterIds) => {
+	desiredWordCount = wordCount;
+
+	// Debugging...
+	debug(`deviceIds=${JSON.stringify(deviceIds)}`);
+	debug(`filterIds=${JSON.stringify(filterIds)}`);
+
+	// Store
+	_deviceIds = deviceIds;
+	_filterIds = filterIds;
+
+	// Create a new schedule
+	freedom.setDeviceIds(_deviceIds);
+	freedom.setFilterIds(_filterIds);
+
+	// Create a new schedule
+	freedom.createSchedule(60).then(timeRemg => {
+		debug(`Time remaining on initial schedule: ${Math.floor(timeRemg)}s`);
+		setInterval(() => {
+			// How much time is remaining?
+			freedom.timeRemaining().then(t => {
+				debug(`Time remaining on schedule: ${Math.floor(t)}s`);
+			});
+		}, 5000);
+	});
 });
 ipcMain.on('get-word-count', (event /*, arg*/) => {
 	event.returnValue = desiredWordCount;

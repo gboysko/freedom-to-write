@@ -4,6 +4,7 @@ const phantomDebug = require('debug')('freedom-to-write:phantom');
 const log = phantomDebug;
 const Promise = require('bluebird');
 const rp = require('request-promise');
+const _ = require('lodash');
 
 // Phantom Creation options
 const phantomArgs = ['--ignore-ssl-errors=yes', '--load-images=no'],
@@ -14,6 +15,7 @@ const FREEDOM_URL_SESSION = 'https://freedom.to/session';
 // const FREEDOM_URL_FREEDOM = 'https://freedom.to/freedom';
 const FREEDOM_URL_DEVICES = 'https://freedom.to/devices';
 const FREEDOM_URL_FILTER_LISTS = 'https://freedom.to/filter_lists';
+const FREEDOM_URL_SCHEDULES = 'https://freedom.to/schedules';
 
 module.exports = class FreedomIntegration {
 	// Initialize Phantom...
@@ -219,6 +221,75 @@ module.exports = class FreedomIntegration {
 		}).then(() => this.getDevices()).then(() => this.getFilterLists()).finally(() => {
 			// Turn off event handler...
 			this.pageInstance.off('onResourceReceived');
+		});
+	}
+
+	// Store the device IDs
+	setDeviceIds(deviceIds) {
+		this.deviceIds = deviceIds;
+	}
+
+	// Store the filter IDs
+	setFilterIds(filterIds) {
+		this.filterIds = filterIds;
+	}
+
+	// Create a new schedule for N seconds
+	createSchedule(nSeconds) {
+		const methodName = 'createSchedule',
+			method = 'POST',
+			body = JSON.stringify({filter_list_ids: this.filterIds, device_ids: this.deviceIds, duration: nSeconds, start_time: 'now'}),
+			options = _.assign({}, this.getRequestOptions(FREEDOM_URL_SCHEDULES), {method, body, json: false});
+
+		return rp(options).then(scheduleJsonText => {
+			try {
+				// Parse it...
+				const scheduleJson = JSON.parse(scheduleJsonText);
+
+				// Log it...
+				debug('%s: %s', methodName, `Schedule JSON: typeof scheduleJson=${typeof scheduleJson}: ${JSON.stringify(scheduleJson)}`);
+
+				// Did the request fail?
+				if (scheduleJson.status !== 'success') {
+					debug('%s: %s', methodName, 'Schedule creation failed!');
+
+					throw new Error('Schedule was not created.');
+				}
+
+				// Record the time remaining (seconds and the ID)
+				this.scheduleId = scheduleJson.schedule.id;
+				this.scheduleTimeLeft = scheduleJson.schedule.time_left;
+
+				return this.scheduleTimeLeft;
+			} catch (err) {
+				debug('%s: %s', methodName, `Unable to parse JSON: ${err}`);
+				throw err;
+			}
+		});
+	}
+
+	// How much time is left on the current schedule?
+	timeRemaining() {
+		const methodName = 'timeRemaining';
+
+		return rp(this.getRequestOptions(FREEDOM_URL_SCHEDULES)).then(scheduleJson => {
+			// Log it...
+			// debug('%s: %s', methodName, `Schedule JSON: ${JSON.stringify(scheduleJson)}`);
+
+			// Find our schedule...
+			const sch = scheduleJson.schedule.filter(s => s.id === this.scheduleId);
+
+			// Did we fail to find the schedule?
+			if (sch.length !== 1) {
+				debug('%s: %s', methodName, `Unable to find exactly 1 schedule with ID=${this.scheduleId}`);
+
+				return 0; /* Indicate no time left */
+			}
+
+			// Log it...
+			debug('%s: %s', methodName, `Time remaining: ${sch[0].time_left}s`);
+
+			return sch[0].time_left;
 		});
 	}
 

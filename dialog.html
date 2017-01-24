@@ -179,8 +179,12 @@
 
 			// Handle the OK button
 			$("#setWordCount").on('click', event => {
+				const getIds = $inputs => $inputs.filter(":checked").map(function() { return this.value; }).get(),
+					filterIds = getIds($(".checkbox-list .filters input")),
+					deviceIds = getIds($(".checkbox-list .devices input"));
+
 				// Tell the main program that we have collected the word count...
-				ipcRenderer.send('set-word-count', parseInt($('#wordCount').val(), 10));
+				ipcRenderer.send('set-word-count', parseInt($('#wordCount').val(), 10), deviceIds, filterIds);
 
 				// Close ourself!
 				window.close();
