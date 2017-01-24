@@ -2,61 +2,133 @@
 <html>
 	<head>
 		<meta charset="UTF-8">
-		<title>Word Count</title>
+		<title>Freedom to Write</title>
 
 		<!-- Latest compiled and minified CSS -->
 		<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
 
 		<!-- Optional theme -->
 		<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap-theme.min.css">
- 	</head>
-	<body style="padding: 1em">
+
+		<!-- Our application styles -->
+		<link rel="stylesheet" href="./styles.css">
+	</head>
+	<body>
 		<!-- This is where the user types in! -->
 		<textarea id="textInput" class="form-control" placeholder="Enter your writing exercise here!" autofocus></textarea>
 
-		<!-- This is where we show the word count goal -->
-		<div>Goal: <span id="desiredWordCount"></span></div>
+		<!-- Status bar -->
+		<div class="status-bar">
+			<!-- This is where we show the word count goal -->
+			<div class="well">Goal: <span id="desiredWordCount"></span></div>
 
-		<!-- This is where the current time is shown -->
-		<div>The current time is <span id="currentTime"></span></div>
+			<!-- Show a progress bar -->
+			<div class="progress">
+	  		<div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="min-width: 2em;">
+	    		0
+	  		</div>
+			</div>
 
-		<!-- This is where the current word count is shown -->
-		<div>This current word count is <span id="currentWordCount"></span>.</div>
+			<!-- This is where the current time is shown -->
+			<div class="well">Time: <span id="currentTime"></span></div>
+
+			<!-- This is the elapsed time -->
+			<div class="well">Elapsed: <span id="elapsedTime"></span></div>
+
+			<!-- This is where the current schedule finishes -->
+			<div class="well">Blocked: <span id="currentScheduleEndTime"></span></div>
+		</div>
 
 		<script>
 			// Install jQuery, Bootstrap
 			window.$ = window.jQuery = require('jquery');
 			require('bootstrap');
 
+			// Need Moment...
+			const moment = require('moment');
+
 			// Install the Inter Process Communication: Renderer class
 			const {ipcRenderer} = require('electron');
 
+			// Hold the start time...
+			const startTime = Date.now();
+
+			// Hold the current word count
+			let currentWordCount = 0;
+
 			// Get a reference to the various HTML elements
-			const textInput = $('#textInput');
-			const currentTime = $('#currentTime');
-			const currentWordCount = $('#currentWordCount');
+			const $textInput = $('#textInput');
+			const $currentTime = $('#currentTime');
+			const $elapsedTime = $('#elapsedTime');
+			const $currentScheduleEndTime = $('#currentScheduleEndTime');
+			const $desiredWordCount = $('#desiredWordCount');
+			const $progressBar = $(".progress-bar");
 
-			// Retrieve the desired word count
+			// Window resize handler
+			const resizeWindow = () => {
+				const windowHeight = $(window).outerHeight(),
+					windowWidth = $(window).outerWidth();
+				console.log(`windowHeight=${windowHeight}, windowWidth=${windowWidth}`);
+				$textInput.outerHeight(windowHeight - ((14 * 3) + 20 + 20));
+				$textInput.outerWidth(windowWidth - (14 * 2 + 6));
+				$(".progress").outerWidth(windowWidth - ((4 * 100) + (2 * 14) + 40));
+			};
+			resizeWindow();
+			$(window).resize(resizeWindow);
+
+			// Retrieve the desired word count and display it
 			const desiredWordCount = ipcRenderer.sendSync('get-word-count');
-			document.getElementById('desiredWordCount').textContent = desiredWordCount;	
+			$desiredWordCount.text(desiredWordCount);
 
-			// Update the current time every 0.5second
-			setInterval(() => currentTime.text(new Date().toString(), 500));
-		
+			// Update the progress bar
+			$progressBar.attr('aria-maxvalue', desiredWordCount);
+
+			const updateScheduleEndTime = () => {
+			// Retrieve the current schedule end time and display it
+				// Get the current schedule's end time and ms remaining
+				const currentScheduleEndTime = ipcRenderer.sendSync('get-schedule-end-time'),
+					msRemg = currentScheduleEndTime - Date.now();
+
+				// Display the time...
+				$currentScheduleEndTime.text(moment(currentScheduleEndTime).format('h:mm:ss'));
+
+				// Schedule the next update
+				setTimeout(updateScheduleEndTime, msRemg);
+			};
+			updateScheduleEndTime();
+
+			setInterval(() => {
+				const elapsedMillis = Date.now() - startTime,
+					elapsedHours = Math.floor(elapsedMillis / (60 * 60 * 1000)),
+					elapsedMins = Math.floor((elapsedMillis - (elapsedHours * 60 * 60 * 1000)) / (60 * 1000)),
+					elapsedSecs = Math.floor((elapsedMillis - (elapsedHours * 60 * 60 * 1000) - (elapsedMins * 60 * 1000)) / 1000),
+					h = elapsedHours,
+					m = ('0' + elapsedMins).substr(-2),
+					s = ('0' + elapsedSecs).substr(-2);
+
+				// Update the current time, elapsed time
+				$currentTime.text(moment().format('h:mm:ss'));
+				$elapsedTime.text(`${h}:${m}:${s}`);
+			}, 500);
+
 			// Get a reference to all buttons...
-			textInput.on('keyup', (event) => {
+			$textInput.on('keyup', (event) => {
 				// Construct the array of words
-				const wordArray = textInput.val().split(/\s/).filter(w => w);
+				const wordArray = $textInput.val().split(/\s/).filter(w => w);
 
-				// Put count of words in the UI
-				currentWordCount.text(wordArray.length);
+				// Has the word count changed?
+				if (currentWordCount !== wordArray.length) {
+					// Update our counter
+					currentWordCount = wordArray.length;
 
-				// Did we reach our word count?
-				if (wordArray.length === desiredWordCount) {
-					// Send an asynchronous message to the main program that we've reached our word count goal
-					ipcRenderer.send('reached-word-count');
+					// Update the progress bar
+					const percentDone = Math.floor(Math.min(desiredWordCount, currentWordCount) * 100 / desiredWordCount) + "%";
+					$progressBar.attr('aria-valuenow', currentWordCount).text(currentWordCount).width(percentDone);
+
+					// Inform the main program...
+					ipcRenderer.send('current-word-count', currentWordCount);
 				}
-			});	
+			});
 		</script>
   	</body>
 </html>

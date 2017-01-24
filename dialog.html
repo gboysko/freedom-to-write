@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset="UTF-8">
-		<title>Word Count</title>
+		<title>Freedom to Write</title>
 
 		<!-- Latest compiled and minified CSS -->
 		<link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
@@ -13,7 +13,7 @@
 		<!-- Our application styles -->
 		<link rel="stylesheet" href="./styles.css">
 	</head>
-	<body>
+	<body style="padding: 1em;">
 		<form class="form-inline">
 			<fieldset id="loginFS">
 				<div class="form-group">
@@ -51,7 +51,7 @@
 						<!-- Our button to accept the word count -->
 						<button type="submit" id="setWordCount" class="btn btn-primary" disabled>OK</button>
 					</div>
-					<div id="formMessage"></div>
+					<div class="alert alert-danger" id="formMessage" role="alert"></div>
 				</fieldset>
 				<hr/>
 

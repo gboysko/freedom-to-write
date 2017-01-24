@@ -21,6 +21,9 @@ let dialog, mainWindow;
 // The desired word count to attain
 let desiredWordCount;
 
+// The current schedule end time
+let currentScheduleEndTime;
+
 // The device IDs to block
 let _deviceIds;
 
@@ -30,8 +33,31 @@ let _filterIds;
 // Whether we've reached our word count
 let reachedWordCount = false;
 
+// The ID of the current timeout for refreshing/renewing the schedule
+let refreshTimeoutId;
+
 // A reference to our Freedom object
 let freedom;
+
+// Compute the next schedule duration
+const computeNextScheduleDuration = () => { return 60; };
+
+// Create a schedule
+const createSchedule = nSeconds => {
+	// Create a new schedule
+	freedom.createSchedule(nSeconds).then(timeRemg => {
+		// Record the current schedule's end time
+		currentScheduleEndTime = Date.now() + timeRemg*1000;
+
+		// Set a timeout for when the time is up...
+		refreshTimeoutId = setTimeout(() => {
+			// Compute how much time for next schedule
+			const nextSchedDuration = computeNextScheduleDuration();
+
+			createSchedule(nextSchedDuration);
+		}, timeRemg*1000);
+	});
+};
 
 // Handle messages (synch and asynch)
 ipcMain.on('set-word-count', (event, wordCount, deviceIds, filterIds) => {
@@ -50,23 +76,24 @@ ipcMain.on('set-word-count', (event, wordCount, deviceIds, filterIds) => {
 	freedom.setFilterIds(_filterIds);
 
 	// Create a new schedule
-	freedom.createSchedule(60).then(timeRemg => {
-		debug(`Time remaining on initial schedule: ${Math.floor(timeRemg)}s`);
-		setInterval(() => {
-			// How much time is remaining?
-			freedom.timeRemaining().then(t => {
-				debug(`Time remaining on schedule: ${Math.floor(t)}s`);
-			});
-		}, 5000);
-	});
+	createSchedule(60);
 });
 ipcMain.on('get-word-count', (event /*, arg*/) => {
 	event.returnValue = desiredWordCount;
 });
-ipcMain.on('reached-word-count', (/* event, arg*/) => {
-	reachedWordCount = true;
-	mainWindow.setFullScreen(false);
-	mainWindow.setClosable(true);
+ipcMain.on('get-schedule-end-time', event => {
+	event.returnValue = currentScheduleEndTime;
+});
+ipcMain.on('current-word-count', (event, wordCount) => {
+	// Are we done?
+	if (wordCount === desiredWordCount) {
+		// Clear the current refresh timeout
+		clearTimeout(refreshTimeoutId);
+
+		reachedWordCount = true;
+		mainWindow.setFullScreen(false);
+		mainWindow.setClosable(true);
+	}
 });
 ipcMain.on('set-freedom-creds', (event, email, password) => {
 	// Log it...
@@ -115,7 +142,7 @@ function createWindow () {
 			}));
 
 			// Open the DevTools.
-			// mainWindow.webContents.openDevTools()
+			// mainWindow.webContents.openDevTools();
 
 			// Handle the window close
 			mainWindow.on('closed', function () {
