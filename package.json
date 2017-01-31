@@ -1,22 +1,22 @@
 {
-  "name": "electron-quick-start",
+  "name": "freedom-to-write",
   "version": "1.0.0",
-  "description": "A minimal Electron application",
+  "description": "A front-end to the Freedom Internet blocker that is controlled by achieving a predefined word count.",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "package": "electron-packager . FreedomToWrite --overwrite --out ~/Desktop/FreedomToWrite"
   },
-  "repository": "https://github.com/electron/electron-quick-start",
+  "repository": "https://github.com/gboysko/freedom-to-write",
   "keywords": [
-    "Electron",
-    "quick",
-    "start",
-    "tutorial",
-    "demo"
+    "electron",
+    "freedom",
+    "writing"
   ],
-  "author": "GitHub",
+  "author": "Sophie Claire Boysko <scboysko@gmail.com>",
   "license": "CC0-1.0",
   "devDependencies": {
+    "electron-packager": "^8.5.1",
     "eslint": "^3.13.1"
   },
   "dependencies": {
