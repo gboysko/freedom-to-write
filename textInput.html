@@ -84,7 +84,7 @@
 			$progressBar.attr('aria-maxvalue', desiredWordCount);
 
 			const updateScheduleEndTime = () => {
-			// Retrieve the current schedule end time and display it
+				// Retrieve the current schedule end time and display it
 				// Get the current schedule's end time and ms remaining
 				const currentScheduleEndTime = ipcRenderer.sendSync('get-schedule-end-time'),
 					msRemg = currentScheduleEndTime - Date.now();

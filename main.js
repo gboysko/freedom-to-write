@@ -82,7 +82,7 @@ ipcMain.on('get-word-count', (event /*, arg*/) => {
 	event.returnValue = desiredWordCount;
 });
 ipcMain.on('get-schedule-end-time', event => {
-	event.returnValue = currentScheduleEndTime;
+	event.returnValue = currentScheduleEndTime || (Date.now() + 10 * 1000); /* 10 from now */
 });
 ipcMain.on('current-word-count', (event, wordCount) => {
 	// Are we done?

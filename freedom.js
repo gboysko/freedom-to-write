@@ -242,29 +242,37 @@ module.exports = class FreedomIntegration {
 			options = _.assign({}, this.getRequestOptions(FREEDOM_URL_SCHEDULES), {method, body, json: false});
 
 		return rp(options).then(scheduleJsonText => {
+			let scheduleJson;
 			try {
 				// Parse it...
-				const scheduleJson = JSON.parse(scheduleJsonText);
-
-				// Log it...
-				debug('%s: %s', methodName, `Schedule JSON: typeof scheduleJson=${typeof scheduleJson}: ${JSON.stringify(scheduleJson)}`);
-
-				// Did the request fail?
-				if (scheduleJson.status !== 'success') {
-					debug('%s: %s', methodName, 'Schedule creation failed!');
-
-					throw new Error('Schedule was not created.');
-				}
-
-				// Record the time remaining (seconds and the ID)
-				this.scheduleId = scheduleJson.schedule.id;
-				this.scheduleTimeLeft = scheduleJson.schedule.time_left;
-
-				return this.scheduleTimeLeft;
+				scheduleJson = JSON.parse(scheduleJsonText);
 			} catch (err) {
 				debug('%s: %s', methodName, `Unable to parse JSON: ${err}`);
-				throw err;
+				throw new Error('Cannot parse the Schedule JSON.');
 			}
+
+			// Log it...
+			debug('%s: %s', methodName, `Schedule JSON: ${JSON.stringify(scheduleJson)}`);
+
+			// Did the request fail?
+			if (scheduleJson.status !== 'success') {
+				debug('%s: %s', methodName, 'Schedule creation failed!');
+
+				throw new Error('Schedule was not created.');
+			}
+
+			// Verify that expected fields are present...
+			if (!scheduleJson.schedule || !scheduleJson.schedule.id || !scheduleJson.schedule.time_left) {
+				debug('%s: %s', methodName, 'Missing expected fields: schedule, schedule.id or schedule.time_left');
+
+				throw new Error('Schedule JSON contains missing fields.');
+			}
+
+			// Record the time remaining (seconds and the ID)
+			this.scheduleId = scheduleJson.schedule.id;
+			this.scheduleTimeLeft = scheduleJson.schedule.time_left;
+
+			return this.scheduleTimeLeft;
 		});
 	}
 
