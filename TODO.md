@@ -13,3 +13,4 @@
 1. Display the estimated completion time based on the typing rate over the last N minutes.
 1. Display the actual words per minute typed.
 1. When starting, show prior uses of the tool (date, # of words, duration)
+1. Provide the ability to save directly to a file (when the user starts a session) and have updates to the text automatically saved to prevent accidental loss of work.
