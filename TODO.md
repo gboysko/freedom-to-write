@@ -13,3 +13,4 @@
 1. Display the estimated completion time based on the typing rate over the last N minutes.
 1. Display the actual words per minute typed.
 1. When starting, show prior uses of the tool (date, # of words, duration)
+1. Implement better logging system to track errors. See https://github.com/megahertz/electron-log
