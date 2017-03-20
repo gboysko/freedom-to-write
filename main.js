@@ -9,6 +9,7 @@ const {ipcMain} = electron;
 // Module for logging
 const log = require('electron-log');
 log.transports.file.level = 'silly';
+log.info(`The path to the log file is ${log.transports.file.findLogPath('freedom-to-write')}`);
 
 // Module to manage interactions with FreedomIntegration
 const Freedom = require('./freedom');
