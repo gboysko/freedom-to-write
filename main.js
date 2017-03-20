@@ -6,8 +6,9 @@ const {app, Menu} = electron;
 const BrowserWindow = electron.BrowserWindow;
 // Module to receive messages
 const {ipcMain} = electron;
-
-const debug = require('debug')('freedom-to-write:main');
+// Module for logging
+const log = require('electron-log');
+log.transports.file.level = 'silly';
 
 // Module to manage interactions with FreedomIntegration
 const Freedom = require('./freedom');
@@ -65,8 +66,8 @@ ipcMain.on('set-word-count', (event, wordCount, deviceIds, filterIds) => {
 	desiredWordCount = wordCount;
 
 	// Debugging...
-	debug(`deviceIds=${JSON.stringify(deviceIds)}`);
-	debug(`filterIds=${JSON.stringify(filterIds)}`);
+	log.info(`deviceIds=${JSON.stringify(deviceIds)}`);
+	log.info(`filterIds=${JSON.stringify(filterIds)}`);
 
 	// Store
 	_deviceIds = deviceIds;
@@ -98,14 +99,14 @@ ipcMain.on('current-word-count', (event, wordCount) => {
 });
 ipcMain.on('set-freedom-creds', (event, email, password) => {
 	// Log it...
-	debug(`on set-freedom-creds: email=${email}, password=${password}`);
+	log.info(`on set-freedom-creds: email=${email}, password=${password}`);
 
 	// Try to login to Freedom
 	freedom.login(email, password).then(() => {
-		debug('Sending login-success message');
+		log.verbose('Sending login-success message');
 		dialog.webContents.send('login-success', freedom.getDeviceMap(), freedom.getFilterListMap());
 	}).catch(err => {
-		debug('Sending login-failure message');
+		log.warn('Sending login-failure message');
 		dialog.webContents.send('login-failure', err.message);
 	});
 });
@@ -167,7 +168,7 @@ function createWindow () {
 
 			Menu.setApplicationMenu(Menu.buildFromTemplate(template));			// Handle the window close
 
-			// Handle the window close
+			// Handle the window close*
 			mainWindow.on('closed', function () {
 				mainWindow = null;
 			});
@@ -184,7 +185,7 @@ function createWindow () {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
-	debug('event: ready');
+	log.info('event: ready');
 
 	// Create a new instance of Freedom
 	freedom = new Freedom();
@@ -193,12 +194,12 @@ app.on('ready', () => {
 	/* eslint-disable no-console */
 	freedom.initialize().then(() => {
 		// Status...
-		debug('Freedom initialized.');
+		log.info('Freedom initialized.');
 
 		// Create our windows...
 		createWindow();
 	}).catch(err => {
-		console.log(`Freedom failed to initialize: ${err}`);
+		log.error(`Freedom failed to initialize: ${err}`);
 
 		throw new Error(err);
 	});
@@ -206,24 +207,24 @@ app.on('ready', () => {
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function () {
-	debug(`event: window-all-closed: desiredWordCount=${desiredWordCount}, reachedWordCount=${reachedWordCount}`);
+	log.info(`event: window-all-closed: desiredWordCount=${desiredWordCount}, reachedWordCount=${reachedWordCount}`);
 
 	// On OS X it is common for applications and their menu bar
 	// to stay active until the user quits explicitly with Cmd + Q
 	if (desiredWordCount === undefined || reachedWordCount) {
 		// Shutdown Freedom integration
-		debug('Telling Freedom to shutdown');
+		log.verbose('Telling Freedom to shutdown');
 		freedom.shutdown();
 		freedom = null;
 
 		// Quiting the application...
-		debug('calling app.quit()');
+		log.verbose('calling app.quit()');
 		app.quit();
 	}
 });
 
 app.on('activate', function () {
-	debug('event: activate');
+	log.info('event: activate');
 
 	// On OS X it's common to re-create a window in the app when the
 	// dock icon is clicked and there are no other windows open.

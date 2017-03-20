@@ -1,14 +1,12 @@
 const phantom = require('phantom');
-const debug = require('debug')('freedom-to-write:freedom');
-const phantomDebug = require('debug')('freedom-to-write:phantom');
-const log = phantomDebug;
 const Promise = require('bluebird');
 const rp = require('request-promise');
 const _ = require('lodash');
+const log = require('electron-log');
 
 // Phantom Creation options
 const phantomArgs = ['--ignore-ssl-errors=yes', '--load-images=no'],
-	phantomJsConfig = { logLevel: 'warn', logger: { warn: log, debug: log, info: log, error: log}};
+	phantomJsConfig = { logLevel: 'warn', logger: { warn: log.warn.bind(log), debug: log.debug.bind(log), info: log.info.bind(log), error: log.error.bind(log)}};
 
 const FREEDOM_URL_SIGNIN = 'https://freedom.to/sign-in';
 const FREEDOM_URL_SESSION = 'https://freedom.to/session';
@@ -25,7 +23,7 @@ module.exports = class FreedomIntegration {
 		// Create a PhantomJS instance...
 		return phantom.create(phantomArgs, phantomJsConfig).then(ph => {
 			// Status...
-			debug('%s: %s', methodName, 'Succesfully created PhantomJS');
+			log.verbose('%s: %s', methodName, 'Succesfully created PhantomJS');
 
 			// Hold a reference to the phantom instance
 			this.phInstance = ph;
@@ -33,14 +31,14 @@ module.exports = class FreedomIntegration {
 			// Try to create a new page instance
 			return this.phInstance.createPage().then(page => {
 				// Status...
-				debug('%s: %s', methodName, 'Successfully created PhantomJS page');
+				log.verbose('%s: %s', methodName, 'Successfully created PhantomJS page');
 
 				// Hold a reference to the page instance
 				this.pageInstance = page;
 			});
 		}).catch(err => {
 			// Log it...
-			debug('%s: %s', methodName, `Unable to initialize Freedom: ${err}`);
+			log.error('%s: %s', methodName, `Unable to initialize Freedom: ${err}`);
 
 			throw new Error('Unable to initialize Freedom. Enable DEBUG for details.');
 		});
@@ -61,7 +59,7 @@ module.exports = class FreedomIntegration {
 			passwordInput.value = password;
 			loginForm.submit();
 		}, email, password).then(() => {
-			debug('%s: %s', methodName, 'Successfully submitted the email and password to the form.');
+			log.verbose('%s: %s', methodName, 'Successfully submitted the email and password to the form.');
 		});
 	}
 
@@ -70,7 +68,7 @@ module.exports = class FreedomIntegration {
 		const methodName = 'onResourceReceived';
 
 		// Debugging...
-		debug('%s: %s', methodName, `Invoking onResourceReceived with response.url=${response.url}`);
+		log.verbose('%s: %s', methodName, `Invoking onResourceReceived with response.url=${response.url}`);
 
 		// Check to see if the resource URL is our session API Ajax call
 		if (response.url === FREEDOM_URL_SESSION && response.stage === 'end') {
@@ -83,7 +81,7 @@ module.exports = class FreedomIntegration {
 			// If invalid, get out now...
 			if (!this.validSession) {
 				// Log it...
-				debug('%s: %s', methodName, `Invalid status code from session page: ${sessionStatusCode}`);
+				log.error('%s: %s', methodName, `Invalid status code from session page: ${sessionStatusCode}`);
 
 				// Reject the promise...
 				reject(new Error ('Login failed'));
@@ -91,7 +89,7 @@ module.exports = class FreedomIntegration {
 			}
 
 			// Log it...
-			debug('%s: %s', methodName, 'Successfully logged into Freedom.');
+			log.verbose('%s: %s', methodName, 'Successfully logged into Freedom.');
 
 			// Pull out the Set-Cookie key
 			const setCookie = response.headers.filter(o => o.name === 'Set-Cookie').map(o => o.value)[0];
@@ -111,8 +109,8 @@ module.exports = class FreedomIntegration {
 			this.cookies = Object.keys(this.cookieMap).map(k => `${k}=${this.cookieMap[k]}`).join('; ');
 
 			// Log it...
-			debug('%s: %s', methodName, `cookieMap:\n${Object.keys(this.cookieMap).map(k => `${k}=${this.cookieMap[k]}`).join('\n')}`);
-			debug('%s: %s', methodName, `cookies: ${this.cookies}`);
+			log.info('%s: %s', methodName, `cookieMap:\n${Object.keys(this.cookieMap).map(k => `${k}=${this.cookieMap[k]}`).join('\n')}`);
+			log.info('%s: %s', methodName, `cookies: ${this.cookies}`);
 
 			resolve();
 		}
@@ -138,7 +136,7 @@ module.exports = class FreedomIntegration {
 
 		return rp(this.getRequestOptions(FREEDOM_URL_DEVICES)).then(deviceJson => {
 			// Log it...
-			debug('%s: %s', methodName, `Device JSON: ${JSON.stringify(deviceJson)}`);
+			log.info('%s: %s', methodName, `Device JSON: ${JSON.stringify(deviceJson)}`);
 
 			// Construct our device map
 			this.deviceMap = (deviceJson.devices || []).reduce((map, elem) => {
@@ -148,10 +146,10 @@ module.exports = class FreedomIntegration {
 			}, {});
 
 			// Log it...
-			debug('%s: %s', methodName, `Device Map: ${JSON.stringify(this.deviceMap)}`);
+			log.info('%s: %s', methodName, `Device Map: ${JSON.stringify(this.deviceMap)}`);
 		}).catch(err => {
 			// Log it...
-			debug('%s: %s', methodName, `Request failed: ${err}`);
+			log.error('%s: %s', methodName, `Request failed: ${err}`);
 
 			throw new Error('Freedom API call failed');
 		});
@@ -168,7 +166,7 @@ module.exports = class FreedomIntegration {
 
 		return rp(this.getRequestOptions(FREEDOM_URL_FILTER_LISTS)).then(filterListJson => {
 			// Log it...
-			debug('%s: %s', methodName, `Filter Lists JSON: ${JSON.stringify(filterListJson)}`);
+			log.info('%s: %s', methodName, `Filter Lists JSON: ${JSON.stringify(filterListJson)}`);
 
 			// Construct our filters lists map
 			this.filterListsMap = (filterListJson.filter_lists || []).reduce((map, elem) => {
@@ -178,9 +176,9 @@ module.exports = class FreedomIntegration {
 			}, {});
 
 			// Log it...
-			debug('%s: %s', methodName, `Filter Lists Map: ${JSON.stringify(this.filterListsMap)}`);
+			log.info('%s: %s', methodName, `Filter Lists Map: ${JSON.stringify(this.filterListsMap)}`);
 		}).catch(err => {
-			debug('%s: %s', methodName, `Request failed: ${err}`);
+			log.error('%s: %s', methodName, `Request failed: ${err}`);
 
 			throw new Error('Freedom API call failed');
 		});
@@ -202,13 +200,13 @@ module.exports = class FreedomIntegration {
 			// Inspect status...
 			if (status !== 'success') {
 				// Log it...
-				debug('%s: %s', methodName, `Unable to open the Freedom Sign-in Page: status=${status}`);
+				log.error('%s: %s', methodName, `Unable to open the Freedom Sign-in Page: status=${status}`);
 
 				throw new Error('Login failed. (Internal Error)');
 			}
 
 			// Status...
-			debug('%s: %s', methodName, 'Successfully opened the Freedom Sign-in Page');
+			log.verbose('%s: %s', methodName, 'Successfully opened the Freedom Sign-in Page');
 
 			// Return a promise that either succeeds or fails with the session...
 			return new Promise((resolve, reject) => {
@@ -247,23 +245,23 @@ module.exports = class FreedomIntegration {
 				// Parse it...
 				scheduleJson = JSON.parse(scheduleJsonText);
 			} catch (err) {
-				debug('%s: %s', methodName, `Unable to parse JSON: ${err}`);
+				log.error('%s: %s', methodName, `Unable to parse JSON: ${err}`);
 				throw new Error('Cannot parse the Schedule JSON.');
 			}
 
 			// Log it...
-			debug('%s: %s', methodName, `Schedule JSON: ${JSON.stringify(scheduleJson)}`);
+			log.info('%s: %s', methodName, `Schedule JSON: ${JSON.stringify(scheduleJson)}`);
 
 			// Did the request fail?
 			if (scheduleJson.status !== 'success') {
-				debug('%s: %s', methodName, 'Schedule creation failed!');
+				log.error('%s: %s', methodName, 'Schedule creation failed!');
 
 				throw new Error('Schedule was not created.');
 			}
 
 			// Verify that expected fields are present...
 			if (!scheduleJson.schedule || !scheduleJson.schedule.id || !scheduleJson.schedule.time_left) {
-				debug('%s: %s', methodName, 'Missing expected fields: schedule, schedule.id or schedule.time_left');
+				log.error('%s: %s', methodName, 'Missing expected fields: schedule, schedule.id or schedule.time_left');
 
 				throw new Error('Schedule JSON contains missing fields.');
 			}
@@ -289,13 +287,13 @@ module.exports = class FreedomIntegration {
 
 			// Did we fail to find the schedule?
 			if (sch.length !== 1) {
-				debug('%s: %s', methodName, `Unable to find exactly 1 schedule with ID=${this.scheduleId}`);
+				log.warn('%s: %s', methodName, `Unable to find exactly 1 schedule with ID=${this.scheduleId}`);
 
 				return 0; /* Indicate no time left */
 			}
 
 			// Log it...
-			debug('%s: %s', methodName, `Time remaining: ${sch[0].time_left}s`);
+			log.info('%s: %s', methodName, `Time remaining: ${sch[0].time_left}s`);
 
 			return sch[0].time_left;
 		});
