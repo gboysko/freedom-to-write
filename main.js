@@ -11,6 +11,9 @@ const log = require('electron-log');
 log.transports.file.level = 'silly';
 log.info(`The path to the log file is ${log.transports.file.findLogPath('freedom-to-write')}`);
 
+// Module for recording history, usage
+const history = require('./History');
+
 // Module to manage interactions with FreedomIntegration
 const Freedom = require('./freedom');
 
@@ -24,20 +27,17 @@ let dialog, mainWindow;
 // The desired word count to attain
 let desiredWordCount;
 
-// The current schedule end time
-let currentScheduleEndTime;
+// Our current word count...
+let currentWordCount;
 
-// The device IDs to block
-let _deviceIds;
-
-// The filter IDs to use to block
-let _filterIds;
+// The current block end time
+let currentBlockEndTime;
 
 // Whether we've reached our word count
 let reachedWordCount = false;
 
-// The ID of the current timeout for refreshing/renewing the schedule
-let refreshTimeoutId;
+// The ID of the next block renew/refresh timeout
+let nextBlockTimeoutId;
 
 // A reference to our Freedom object
 let freedom;
@@ -45,59 +45,70 @@ let freedom;
 // Compute the next schedule duration
 const computeNextScheduleDuration = () => { return 60; };
 
-// Create a schedule
-const createSchedule = nSeconds => {
+// Block the internet for the next N seconds
+const blockInternetForNSeconds = nSeconds => {
 	// Create a new schedule
 	freedom.createSchedule(nSeconds).then(timeRemg => {
-		// Record the current schedule's end time
-		currentScheduleEndTime = Date.now() + timeRemg*1000;
+		// Record the current block's end time
+		currentBlockEndTime = Date.now() + timeRemg*1000;
 
 		// Set a timeout for when the time is up...
-		refreshTimeoutId = setTimeout(() => {
-			// Compute how much time for next schedule
-			const nextSchedDuration = computeNextScheduleDuration();
+		nextBlockTimeoutId = setTimeout(() => {
+			// Compute how much time for next block
+			const nextBlockDuration = computeNextScheduleDuration();
 
-			createSchedule(nextSchedDuration);
+			// Block the internet...
+			blockInternetForNSeconds(nextBlockDuration);
 		}, timeRemg*1000);
 	});
 };
 
-// Handle messages (synch and asynch)
+// What to do when the word count is set
 ipcMain.on('set-word-count', (event, wordCount, deviceIds, filterIds) => {
+	// Store our desired word count
 	desiredWordCount = wordCount;
 
-	// Debugging...
-	log.info(`deviceIds=${JSON.stringify(deviceIds)}`);
-	log.info(`filterIds=${JSON.stringify(filterIds)}`);
+	// Indicate a desire to start a new session
+	history.startNewSession(desiredWordCount);
 
-	// Store
-	_deviceIds = deviceIds;
-	_filterIds = filterIds;
+	// Set the device and filter IDs to use for future blocks...
+	freedom.setDeviceIds(deviceIds);
+	freedom.setFilterIds(filterIds);
 
-	// Create a new schedule
-	freedom.setDeviceIds(_deviceIds);
-	freedom.setFilterIds(_filterIds);
-
-	// Create a new schedule
-	createSchedule(60);
+	// Start to block the internet!
+	blockInternetForNSeconds(60);
 });
+
+// Get the desired word count...
 ipcMain.on('get-word-count', (event /*, arg*/) => {
 	event.returnValue = desiredWordCount;
 });
-ipcMain.on('get-schedule-end-time', event => {
-	event.returnValue = currentScheduleEndTime || (Date.now() + 10 * 1000); /* 10 from now */
-});
-ipcMain.on('current-word-count', (event, wordCount) => {
-	// Are we done?
-	if (wordCount >= desiredWordCount) {
-		// Clear the current refresh timeout
-		clearTimeout(refreshTimeoutId);
 
+// Get the projected end time for block...
+ipcMain.on('get-schedule-end-time', event => {
+	event.returnValue = currentBlockEndTime || (Date.now() + 10 * 1000); /* 10 from now */
+});
+
+// Get the current word count...
+ipcMain.on('current-word-count', (event, wordCount) => {
+	// Record our current word count...
+	currentWordCount = wordCount;
+
+	// Are we done?
+	if (currentWordCount >= desiredWordCount && !reachedWordCount) {
+		// Clear the current refresh timeout
+		clearTimeout(nextBlockTimeoutId);
+
+		// Indicate that we've reached the desired word count...
 		reachedWordCount = true;
+
+		// Reset the main window...
 		mainWindow.setFullScreen(false);
 		mainWindow.setClosable(true);
 	}
 });
+
+// Set our Freedom credentials...
 ipcMain.on('set-freedom-creds', (event, email, password) => {
 	// Log it...
 	log.info(`on set-freedom-creds: email=${email}, password=${password}`);
@@ -105,7 +116,7 @@ ipcMain.on('set-freedom-creds', (event, email, password) => {
 	// Try to login to Freedom
 	freedom.login(email, password).then(() => {
 		log.verbose('Sending login-success message');
-		dialog.webContents.send('login-success', freedom.getDeviceMap(), freedom.getFilterListMap());
+		dialog.webContents.send('login-success', freedom.getDeviceMap(), freedom.getFilterListMap(), history.getAll());
 	}).catch(err => {
 		log.warn('Sending login-failure message');
 		dialog.webContents.send('login-failure', err.message);
@@ -122,9 +133,6 @@ function createWindow () {
 		protocol: 'file:',
 		slashes: true
 	}));
-
-	// Open the DevTools.
-	// dialog.webContents.openDevTools();
 
 	// Emitted when the window is closed.
 	dialog.on('closed', function () {
@@ -143,9 +151,6 @@ function createWindow () {
 				protocol: 'file:',
 				slashes: true
 			}));
-
-			// Open the DevTools.
-			// mainWindow.webContents.openDevTools();
 
 			// Create the Application's main menu
 			var template = [{
@@ -207,12 +212,17 @@ app.on('ready', () => {
 });
 
 // Quit when all windows are closed.
-app.on('window-all-closed', function () {
+app.on('window-all-closed', () => {
 	log.info(`event: window-all-closed: desiredWordCount=${desiredWordCount}, reachedWordCount=${reachedWordCount}`);
 
 	// On OS X it is common for applications and their menu bar
 	// to stay active until the user quits explicitly with Cmd + Q
 	if (desiredWordCount === undefined || reachedWordCount) {
+		if (currentWordCount) {
+			// Log our history...
+			history.endSession(currentWordCount);
+		}
+
 		// Shutdown Freedom integration
 		log.verbose('Telling Freedom to shutdown');
 		freedom.shutdown();

@@ -53,31 +53,27 @@
 					</div>
 					<div class="alert alert-danger" id="formMessage" role="alert"></div>
 				</fieldset>
+
 				<hr/>
-
-				<h2>Prior runs:</h2>
-
-				<table class="table">
-					<thead>
-						<tr>
-							<th>Date</th>
-							<th>Words</th>
-							<th>Time Taken</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr>
-							<td>Dec 1, 2016</td>
-							<td>500</td>
-							<td>1 hour, 15 minutes</td>
-						</tr>
-						<tr>
-							<td>Nov 20, 2016</td>
-							<td>750</td>
-							<td>2 hour, 30 minutes</td>
-						</tr>
-					</tbody>
-				</table>
+				<div class="no-history" style="display: none;">
+					<h2>No previous runs. Start writing!</h2>
+				</div>
+				<div class="past-history" style="display: none;">
+					<h2>Prior runs [<span class="num-of-prior-runs"></span>]:</h2>
+					<div class="history-cntr">
+						<table class="table history">
+							<thead>
+								<tr>
+									<th>Date</th>
+									<th>Words</th>
+									<th>Time Taken</th>
+									<th>Word per Minute</th>
+								</tr>
+							</thead>
+							<tbody></tbody>
+						</table>
+					</div>
+				</div>
 			</div>
 		</form>
 
@@ -85,6 +81,7 @@
 			// Load jQuery, Bootstrap
 			window.$ = window.jQuery = require('jquery');
 			require('bootstrap');
+			const moment = require('moment');
 
 			// Put the focus on the email field...
 			$("#emailInput").focus();
@@ -96,6 +93,12 @@
 				anyDeviceChecked = () => $(".checkbox-list .devices input").filter(":checked").length > 0,
 				hideShowFormMessage = () => $("#formMessage")[(anyDeviceChecked() && anyFilterChecked()) ? 'hide' : 'show'](),
 				enableDisableOkButton = () => $("#setWordCount").prop('disabled', !(parseInt($('#wordCount').val(), 10) > 0 && anyFilterChecked() && anyDeviceChecked()));
+
+			// Function used to display the historical data table
+			const dateOfUse = ts => moment(ts).calendar();
+			const wordsDone = (d, a) => (a) ? a : `${d} (desired)`;
+			const duration = (start, end) => end ? moment.duration(end-start).humanize() : 'Never finished...';
+			const wordsPerMinute = (wc, start, end) => wc && end ? Math.round(wc / ((end-start) / 1000 / 60)) : 'N/A';
 
 			// Handle keystrokes -- discard anything other than arrow key, delete, tab or digit
 			$('#wordCount').on('keydown', e => {
@@ -138,7 +141,7 @@
 				$("#passwordInput").focus();
 			});
 
-			ipcRenderer.on('login-success', (event, deviceMap, filterListMap) => {
+			ipcRenderer.on('login-success', (event, deviceMap, filterListMap, pastHistory) => {
 				// Indicate that we have successfully logged in.
 				$("#loginMsg").text("Success");
 
@@ -163,6 +166,28 @@
 				}
 				// Focus in the wordCount input
 				$("#wordCount").focus();
+
+				// Get the past history
+				if (pastHistory.length) {
+					// Update the number of prior runs...
+					$(".num-of-prior-runs").text(pastHistory.length);
+
+					// Loop through the history...
+					pastHistory.sort((a, b) => a.endTime - a.startTime).forEach(o => {
+						$("table tbody").append(`
+							<tr>
+								<td>${dateOfUse(o.endTime)}</td>
+								<td>${wordsDone(o.desiredWordCount, o.actualWordCount)}</td>
+								<td>${duration(o.startTime, o.endTime)}</td>
+								<td>${wordsPerMinute(o.actualWordCount, o.startTime, o.endTime)}</td>
+							</tr>`);
+					});
+
+					// Show our past history
+					$(".past-history").show();
+				} else {
+					$(".no-history").show();
+				}
 			});
 
 			// Handle changes to the Block List

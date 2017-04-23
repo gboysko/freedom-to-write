@@ -50,3 +50,7 @@ DIV.status-bar DIV.well {
 	vertical-align: top;
 	width: 100px;
 }
+DIV.history-cntr {
+	height: 250px;
+	overflow: auto;
+}

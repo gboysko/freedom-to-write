@@ -224,11 +224,17 @@ module.exports = class FreedomIntegration {
 
 	// Store the device IDs
 	setDeviceIds(deviceIds) {
+		// Debugging...
+		log.info(`deviceIds=${JSON.stringify(deviceIds)}`);
+
 		this.deviceIds = deviceIds;
 	}
 
 	// Store the filter IDs
 	setFilterIds(filterIds) {
+		// Debugging...
+		log.info(`filterIds=${JSON.stringify(filterIds)}`);
+
 		this.filterIds = filterIds;
 	}
 
