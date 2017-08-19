@@ -6,7 +6,7 @@ const log = require('electron-log');
 
 // Phantom Creation options
 const phantomArgs = ['--ignore-ssl-errors=yes', '--load-images=no'],
-	phantomJsConfig = { logLevel: 'warn', logger: { warn: log.warn.bind(log), debug: log.debug.bind(log), info: log.info.bind(log), error: log.error.bind(log)}};
+	phantomJsConfig = { logLevel: 'warn', logger: { warn: log.warn.bind(log), debug2: log.debug.bind(log), info: log.info.bind(log), error: log.error.bind(log)}};
 
 const FREEDOM_URL_SIGNIN = 'https://freedom.to/sign-in';
 const FREEDOM_URL_SESSION = 'https://freedom.to/session';
@@ -28,8 +28,10 @@ module.exports = class FreedomIntegration {
 			// Hold a reference to the phantom instance
 			this.phInstance = ph;
 
-			// Try to create a new page instance
-			return this.phInstance.createPage().then(page => {
+			return Promise.try(() => {
+				// Try to create a new page instance
+				return this.phInstance.createPage();
+			}).timeout(5000).then(page => {
 				// Status...
 				log.verbose('%s: %s', methodName, 'Successfully created PhantomJS page');
 
@@ -40,7 +42,8 @@ module.exports = class FreedomIntegration {
 			// Log it...
 			log.error('%s: %s', methodName, `Unable to initialize Freedom: ${err}`);
 
-			throw new Error('Unable to initialize Freedom. Enable DEBUG for details.');
+			// throw new Error('Unable to initialize Freedom. Enable DEBUG for details.');
+			throw err;
 		});
 	}
 
@@ -305,12 +308,42 @@ module.exports = class FreedomIntegration {
 		});
 	}
 
+	// Close the page instance...
+	closePage() {
+		// No page instance? Resolved!
+		if (!this.pageInstance) {
+			return Promise.resolved();
+		}
+
+		return this.pageInstance.close();
+	}
+
+	// Close Phantom...
+	closePhantom() {
+		// No phantom instance? Resolved!
+		if (!this.phInstance) {
+			return Promise.resolved();
+		}
+
+		return Promise.try(() => {
+			// Try to exit first...
+			return this.phInstance.exit();
+		}).timeout(2000).catch(err => {
+			// Log it...
+			log.warn(`Tried to call phantom.exit(), but it failed: ${err}`);
+
+			// Kill it without mercy!
+			this.phInstance.kill();
+		});
+	}
 	// Shutdown the Freedom Integration on this instance...
 	shutdown() {
-		// Close the page instance...
-		this.pageInstance.close();
-
-		// Exit Phantom...
-		this.phInstance.exit();
+		// Wait for the page instance to be closed...
+		return this.closePage().then(() => {
+			this.closePhantom();
+		}).catch(err => {
+			// Log it...
+			log.warn(`Unable to shutdown properly: ${err}`);
+		});
 	}
 };

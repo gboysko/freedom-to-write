@@ -1,7 +1,7 @@
 const electron = require('electron');
 
 // Module to control application life.
-const {app, Menu} = electron;
+const {app, Menu, dialog} = electron;
 // Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow;
 // Module to receive messages
@@ -22,7 +22,7 @@ const url = require('url');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
-let dialog, mainWindow;
+let settingsWindow, mainWindow;
 
 // The desired word count to attain
 let desiredWordCount;
@@ -116,26 +116,26 @@ ipcMain.on('set-freedom-creds', (event, email, password) => {
 	// Try to login to Freedom
 	freedom.login(email, password).then(() => {
 		log.verbose('Sending login-success message');
-		dialog.webContents.send('login-success', freedom.getDeviceMap(), freedom.getFilterListMap(), history.getAll());
+		settingsWindow.webContents.send('login-success', freedom.getDeviceMap(), freedom.getFilterListMap(), history.getAll());
 	}).catch(err => {
 		log.warn('Sending login-failure message');
-		dialog.webContents.send('login-failure', err.message);
+		settingsWindow.webContents.send('login-failure', err.message);
 	});
 });
 
 function createWindow () {
 	// Create the browser dialog
-	dialog = new BrowserWindow({width: 800, height: 600, center: true, minimizable: false, maximizable: false});
+	settingsWindow = new BrowserWindow({width: 800, height: 600, center: true, minimizable: false, maximizable: false});
 
 	// and load the index.html of the app.
-	dialog.loadURL(url.format({
+	settingsWindow.loadURL(url.format({
 		pathname: path.join(__dirname, 'dialog.html'),
 		protocol: 'file:',
 		slashes: true
 	}));
 
 	// Emitted when the window is closed.
-	dialog.on('closed', function () {
+	settingsWindow.on('closed', function () {
 		// Do we have a desired word count?
 		if (desiredWordCount) {
 			// Create the main window
@@ -153,22 +153,25 @@ function createWindow () {
 			}));
 
 			// Create the Application's main menu
-			var template = [{
-				label: 'Application',
-				submenu: [
-					{ label: 'About Application', selector: 'orderFrontStandardAboutPanel:' },
-					{ type: 'separator' },
-					{ label: 'Quit', accelerator: 'Command+Q', click: function() { app.quit(); }}
-				]}, {
+			var template = [
+				{
+					label: 'Application',
+					submenu: [
+						{ label: 'About Application', selector: 'orderFrontStandardAboutPanel:' },
+						{ type: 'separator' },
+						{ label: 'Quit', accelerator: 'Command+Q', click: function() { app.quit(); }}
+					]
+				},
+				{
 					label: 'Edit',
 					submenu: [
-							{ label: 'Undo', accelerator: 'CmdOrCtrl+Z', selector: 'undo:' },
-							{ label: 'Redo', accelerator: 'Shift+CmdOrCtrl+Z', selector: 'redo:' },
-							{ type: 'separator' },
-							{ label: 'Cut', accelerator: 'CmdOrCtrl+X', selector: 'cut:' },
-							{ label: 'Copy', accelerator: 'CmdOrCtrl+C', selector: 'copy:' },
-							{ label: 'Paste', accelerator: 'CmdOrCtrl+V', selector: 'paste:' },
-							{ label: 'Select All', accelerator: 'CmdOrCtrl+A', selector: 'selectAll:' }
+						{ label: 'Undo', accelerator: 'CmdOrCtrl+Z', selector: 'undo:' },
+						{ label: 'Redo', accelerator: 'Shift+CmdOrCtrl+Z', selector: 'redo:' },
+						{ type: 'separator' },
+						{ label: 'Cut', accelerator: 'CmdOrCtrl+X', selector: 'cut:' },
+						{ label: 'Copy', accelerator: 'CmdOrCtrl+C', selector: 'copy:' },
+						{ label: 'Paste', accelerator: 'CmdOrCtrl+V', selector: 'paste:' },
+						{ label: 'Select All', accelerator: 'CmdOrCtrl+A', selector: 'selectAll:' }
 					]}
 			];
 
@@ -182,7 +185,7 @@ function createWindow () {
 			// Dereference the window object, usually you would store windows
 			// in an array if your app supports multi windows, this is the time
 			// when you should delete the corresponding element.
-			dialog = null;
+			settingsWindow = null;
 		}
 	});
 }
@@ -199,15 +202,21 @@ app.on('ready', () => {
 	// Initialize it...
 	/* eslint-disable no-console */
 	freedom.initialize().then(() => {
-		// Status...
+		// Log it...
 		log.info('Freedom initialized.');
 
 		// Create our windows...
 		createWindow();
 	}).catch(err => {
+		// Log it...
 		log.error(`Freedom failed to initialize: ${err}`);
 
-		throw new Error(err);
+		// Alert box...
+		dialog.showErrorBox('Freedom-to-write Failed to Startup', err.message);
+		freedom.shutdown().finally(() => {
+			freedom = null;
+			app.quit();
+		});
 	});
 });
 
