@@ -36,7 +36,7 @@ const readAll = () => {
 					log.error(`Unable to parse JSON in file '${FILE_HISTORY}': ${l}: err=${err}`);
 					return '';
 				}
-			}).filter(o => o);
+			}).filter(o => o).sort((a, b) => a.startTme - b.startTime);
 		}
 	} catch (err) {
 		if (err.code !== 'ENOENT') {
@@ -62,7 +62,7 @@ class History {
 
 	// Return our previous history
 	getAll() {
-		return historyArray;
+		return historyArray.slice();
 	}
 
 	startNewSession(desiredWordCount) {

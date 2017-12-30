@@ -96,8 +96,8 @@
 
 			// Function used to display the historical data table
 			const dateOfUse = ts => moment(ts).calendar();
-			const wordsDone = (d, a) => (a) ? a : `${d} (desired)`;
-			const duration = (start, end) => end ? moment.duration(end-start).humanize() : 'Never finished...';
+			const wordsDone = (d, a) => a || `${d} (desired)`;
+			const duration = (start, end) => end ? moment.duration(end-start).humanize() : '??? (Lost end time)';
 			const wordsPerMinute = (wc, start, end) => wc && end ? Math.round(wc / ((end-start) / 1000 / 60)) : 'N/A';
 
 			// Handle keystrokes -- discard anything other than arrow key, delete, tab or digit
@@ -173,10 +173,10 @@
 					$(".num-of-prior-runs").text(pastHistory.length);
 
 					// Loop through the history...
-					pastHistory.sort((a, b) => a.endTime - a.startTime).forEach(o => {
+					pastHistory.sort((a, b) => b.startTime - a.startTime).forEach(o => {
 						$("table tbody").append(`
 							<tr>
-								<td>${dateOfUse(o.endTime)}</td>
+								<td>${dateOfUse(o.startTime)}</td>
 								<td>${wordsDone(o.desiredWordCount, o.actualWordCount)}</td>
 								<td>${duration(o.startTime, o.endTime)}</td>
 								<td>${wordsPerMinute(o.actualWordCount, o.startTime, o.endTime)}</td>
